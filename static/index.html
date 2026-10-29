@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Patient Registration Dashboard</title>
+  <style>
+    :root { font-family: Inter, system-ui, Arial, sans-serif; color:#182230; background:#f4f7fb; }
+    body { margin:0; }
+    header { background:#142d4e; color:white; padding:24px clamp(18px,4vw,48px); }
+    header h1 { margin:0 0 6px; font-size:24px; }
+    header p { margin:0; color:#d7e3f1; }
+    main { padding:24px clamp(18px,4vw,48px); }
+    .toolbar { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:18px; }
+    input, button { border-radius:9px; padding:10px 12px; border:1px solid #cbd5e1; font:inherit; }
+    input { background:white; min-width:200px; }
+    button { cursor:pointer; background:#1d5da8; color:white; border:0; font-weight:600; }
+    button.secondary { background:white; color:#1d3553; border:1px solid #cbd5e1; }
+    .stat { background:white; border:1px solid #e0e7ef; border-radius:12px; padding:16px; margin-bottom:18px; }
+    .stat strong { font-size:24px; display:block; }
+    .table-wrap { overflow:auto; background:white; border:1px solid #e0e7ef; border-radius:12px; }
+    table { border-collapse:collapse; width:100%; min-width:760px; }
+    th,td { padding:13px 15px; text-align:left; border-bottom:1px solid #edf1f5; font-size:14px; }
+    th { background:#f8fafc; color:#526277; }
+    .muted { color:#66768a; font-size:13px; }
+    #status { margin:10px 0; }
+  </style>
+</head>
+<body>
+<header>
+  <h1>Patient Registration Dashboard</h1>
+  <p>CareCloud Voice AI assessment · Demo data only</p>
+</header>
+<main>
+  <div class="toolbar">
+    <input id="search" placeholder="Filter by last name">
+    <button onclick="loadPatients()">Refresh records</button>
+    <button class="secondary" onclick="window.open('/docs','_blank')">Open API docs</button>
+  </div>
+  <div class="stat"><span class="muted">Active patient records</span><strong id="count">—</strong></div>
+  <p id="status" class="muted">Loading records…</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Name</th><th>Date of birth</th><th>Phone</th><th>City / State</th><th>Created (UTC)</th></tr></thead>
+      <tbody id="patients"></tbody>
+    </table>
+  </div>
+  <p class="muted">This assessment demo is not intended for real patient data or clinical use.</p>
+</main>
+<script>
+async function loadPatients() {
+  const status = document.getElementById('status');
+  const tbody = document.getElementById('patients');
+  status.textContent = 'Loading…';
+  try {
+    const last = document.getElementById('search').value.trim();
+    const url = last ? '/patients?last_name=' + encodeURIComponent(last) : '/patients';
+    const response = await fetch(url);
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.detail || 'Could not load records');
+    const rows = result.data || [];
+    document.getElementById('count').textContent = rows.length;
+    tbody.replaceChildren();
+    for (const p of rows) {
+      const tr = document.createElement('tr');
+      [p.first_name + ' ' + p.last_name, p.date_of_birth, p.phone_number,
+       p.city + ', ' + p.state, new Date(p.created_at).toLocaleString()].forEach(value => {
+        const td = document.createElement('td');
+        td.textContent = value || '—';
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    }
+    status.textContent = rows.length ? 'Records loaded successfully.' : 'No patient records yet. Register a demo patient through the API or voice agent.';
+  } catch (err) {
+    status.textContent = 'Error: ' + err.message;
+  }
+}
+document.getElementById('search').addEventListener('keydown', e => { if (e.key === 'Enter') loadPatients(); });
+loadPatients();
+</script>
+</body>
+</html>
